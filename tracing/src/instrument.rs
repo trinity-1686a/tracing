@@ -269,7 +269,10 @@ impl<T: Future> Future for Instrumented<T> {
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let this = self.project();
         let _enter = this.span.enter();
-        this.inner.poll(cx)
+        crate::debug!("entering async span");
+        let res = this.inner.poll(cx);
+        crate::debug!("leaving async span");
+        res
     }
 }
 

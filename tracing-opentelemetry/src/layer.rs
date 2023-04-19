@@ -748,8 +748,10 @@ where
 
         if let Some(timings) = extensions.get_mut::<Timings>() {
             let now = Instant::now();
-            timings.busy += (now - timings.last).as_nanos() as i64;
+            let delta = (now - timings.last).as_nanos() as i64;
+            timings.busy += delta;
             timings.last = now;
+            timings.max_poll = timings.max_poll.max(delta);
         }
     }
 
@@ -909,12 +911,14 @@ where
                 if let Some(timings) = extensions.get_mut::<Timings>() {
                     let busy_ns = Key::new("busy_ns");
                     let idle_ns = Key::new("idle_ns");
+                    let max_poll_ns = Key::new("max_poll_ns");
 
                     let attributes = builder
                         .attributes
                         .get_or_insert_with(|| OrderMap::with_capacity(2));
                     attributes.insert(busy_ns, timings.busy.into());
                     attributes.insert(idle_ns, timings.idle.into());
+                    attributes.insert(max_poll_ns, timings.max_poll.into());
                 }
             }
 
@@ -941,6 +945,7 @@ where
 struct Timings {
     idle: i64,
     busy: i64,
+    max_poll: i64,
     last: Instant,
 }
 
@@ -949,6 +954,7 @@ impl Timings {
         Self {
             idle: 0,
             busy: 0,
+            max_poll: 0,
             last: Instant::now(),
         }
     }
